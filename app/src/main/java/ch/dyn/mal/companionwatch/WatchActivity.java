@@ -26,6 +26,7 @@ public class WatchActivity extends YouTubeBaseActivity {
     // Objects displayed on screen
     EditText searchInput;
     Button searchButton;
+    ToggleButton visibilityToggle;
 
     // The Web-Socket
     Socket mSocket;
@@ -59,6 +60,7 @@ public class WatchActivity extends YouTubeBaseActivity {
         // Objects displayed on screen
         searchInput = findViewById(R.id.editText);
         searchButton = findViewById(R.id.button);
+        visibilityToggle = findViewById(R.id.visibilityToggle);
 
         // Initializing the youtube player
         youTubePlayerView = findViewById(R.id.youtube_player);
@@ -190,7 +192,6 @@ public class WatchActivity extends YouTubeBaseActivity {
                     @Override
                     public void run() {
                         boolean visibility = (boolean) args[0];
-                        ToggleButton visibilityToggle = findViewById(R.id.visibilityToggle);
                         visibilityToggle.setChecked(visibility);
                     }
                 });
@@ -229,6 +230,14 @@ public class WatchActivity extends YouTubeBaseActivity {
             @Override
             public void onClick(View v) {
                 String query = searchInput.getText().toString();
+            }
+        });
+
+        // Emit an event for changing the rooms visibility when the visibilityToggle Button is clicked
+        visibilityToggle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mSocket.emit("changeVisibility", visibilityToggle.isChecked());
             }
         });
 
