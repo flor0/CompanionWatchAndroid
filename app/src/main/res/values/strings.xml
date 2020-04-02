@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">CompanionWatch</string>
+    <string name="create_room">Create Room</string>
+    <string name="search_video">Search for Videos</string>
+    <string name="search_video_button">search</string>
+    <string name="visibility">Room Visibility:</string>
+    <string name="visible">public</string>
+    <string name="hidden">private</string>
+</resources>
