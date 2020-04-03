@@ -16,7 +16,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".WatchActivity">
+        <activity android:name=".WatchActivity"
+            android:configChanges="orientation|screenSize">
 
         </activity>
     </application>

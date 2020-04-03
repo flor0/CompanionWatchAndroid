@@ -20,19 +20,22 @@
         android:id="@+id/editText"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:autofillHints=""
         android:ems="10"
         android:hint="@string/search_video"
         android:imeOptions="actionSearch"
         android:inputType="textPersonName"
         app:layout_constraintEnd_toStartOf="@+id/button"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:autofillHints="" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/button"
         android:layout_width="102dp"
         android:layout_height="45dp"
+        android:layout_marginTop="16dp"
         android:text="@string/search_video_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -64,10 +67,12 @@
 
     <ScrollView
         android:id="@+id/videoResultsContainer"
-        android:layout_width="411dp"
-        android:layout_height="327dp"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/visibilityToggle" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
