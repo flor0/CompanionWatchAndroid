@@ -6,4 +6,5 @@
     <string name="visibility">Room Visibility:</string>
     <string name="visible">public</string>
     <string name="hidden">private</string>
+    <string name="newRoomError">Something went wrong. Couldn\'t create a new room.</string>
 </resources>

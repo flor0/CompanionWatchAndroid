@@ -32,7 +32,7 @@ public class WatchActivity extends YouTubeBaseActivity {
     Socket mSocket;
 
     // The namespace of the socket
-    String namespace = "5523c4df7edb029756788680";
+    String namespace;
 
     // Event listeners for the Web-Socket
     Emitter.Listener onStateChange;
@@ -57,6 +57,8 @@ public class WatchActivity extends YouTubeBaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_watch);
 
+        namespace = getIntent().getExtras().getString("ns");
+
         externalChange = false;
         firstPlay = true;
 
@@ -69,6 +71,7 @@ public class WatchActivity extends YouTubeBaseActivity {
         try {
             IO.Options opt = new IO.Options();
             opt.query = "ns=".concat(namespace);
+            opt.forceNew = true;
             mSocket = IO.socket("https://mal.dyn.ch/watch", opt);
         } catch (URISyntaxException e) {}
 
@@ -161,7 +164,7 @@ public class WatchActivity extends YouTubeBaseActivity {
                             @Override
                             public void run() {
                                 externalChange = true;
-                                double seconds = (double) args[0];
+                                double seconds = Double.valueOf(args[0].toString());
                                 int millis = (int) (seconds * 1000.0);
                                 youTubePlayer.seekToMillis(millis);
                             }
@@ -176,7 +179,6 @@ public class WatchActivity extends YouTubeBaseActivity {
                             @Override
                             public void run() {
                                 String videoId = (String) args[0];
-                                // Only cue the video if it's the first video played by the user
                                 youTubePlayer.loadVideo(videoId);
 
                             }
@@ -212,7 +214,6 @@ public class WatchActivity extends YouTubeBaseActivity {
                 // ------------------ End of Emitter listeners declaration ------------------
 
                 // Event listeners for the Web-Socket
-
                 mSocket.on("stateChange", onStateChange);
                 mSocket.on("timeChange", onTimeChange);
                 mSocket.on("videoChange", onVideoChange);
@@ -264,19 +265,13 @@ public class WatchActivity extends YouTubeBaseActivity {
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-
-        mSocket.disconnect();
-    }
-
-    @Override
     public void onDestroy() {
         super.onDestroy();
 
         youTubePlayer.release();
         youTubePlayer = null;
 
+        mSocket.disconnect();
         mSocket.off("stateChange", onStateChange);
         mSocket.off("timeChange", onTimeChange);
         mSocket.off("videoChange", onVideoChange);
