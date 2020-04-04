@@ -1,6 +1,7 @@
 package ch.dyn.mal.companionwatch;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
@@ -10,9 +11,10 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.ToggleButton;
+
+import androidx.annotation.NonNull;
 
 import com.google.android.youtube.player.YouTubeBaseActivity;
 import com.google.android.youtube.player.YouTubeInitializationResult;
@@ -172,7 +174,7 @@ public class WatchActivity extends YouTubeBaseActivity {
                             @Override
                             public void run() {
                                 externalChange = true;
-                                double seconds = Double.valueOf(args[0].toString());
+                                double seconds = Double.parseDouble(args[0].toString());
                                 int millis = (int) (seconds * 1000.0);
                                 youTubePlayer.seekToMillis(millis);
                             }
@@ -188,7 +190,6 @@ public class WatchActivity extends YouTubeBaseActivity {
                             public void run() {
                                 String videoId = (String) args[0];
                                 youTubePlayer.loadVideo(videoId);
-
                             }
                         });
                     }
@@ -308,6 +309,19 @@ public class WatchActivity extends YouTubeBaseActivity {
                 return false;
             }
         });
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        // Set youTubePlayer to fullscreen if orientation is landscape
+        int newOrientation = newConfig.orientation;
+        if (newOrientation == Configuration.ORIENTATION_LANDSCAPE) {
+            youTubePlayer.setFullscreen(true);
+        } else if (newOrientation == Configuration.ORIENTATION_PORTRAIT) {
+            youTubePlayer.setFullscreen(false);
+        }
     }
 
     @Override
