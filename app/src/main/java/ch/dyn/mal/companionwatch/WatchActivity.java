@@ -17,7 +17,7 @@ import com.github.nkzawa.socketio.client.IO;
 import com.github.nkzawa.socketio.client.Socket;
 import com.github.nkzawa.emitter.Emitter;
 
-import org.json.JSONObject;
+import org.json.JSONArray;
 
 import java.net.URISyntaxException;
 
@@ -73,7 +73,7 @@ public class WatchActivity extends YouTubeBaseActivity {
             opt.query = "ns=".concat(namespace);
             opt.forceNew = true;
             mSocket = IO.socket("https://mal.dyn.ch/watch", opt);
-        } catch (URISyntaxException e) {}
+        } catch (URISyntaxException ignored) {}
 
         mSocket.connect();
 
@@ -205,7 +205,8 @@ public class WatchActivity extends YouTubeBaseActivity {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-
+                                JSONArray data = (JSONArray) args[0];
+                                System.out.println(data.toString());
                             }
                         });
                     }
@@ -240,6 +241,7 @@ public class WatchActivity extends YouTubeBaseActivity {
             @Override
             public void onClick(View v) {
                 String query = searchInput.getText().toString();
+                mSocket.emit("videoSearch", query);
             }
         });
 
