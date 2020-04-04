@@ -1,11 +1,16 @@
 package ch.dyn.mal.companionwatch;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
@@ -16,8 +21,11 @@ import com.google.android.youtube.player.YouTubePlayerView;
 import com.github.nkzawa.socketio.client.IO;
 import com.github.nkzawa.socketio.client.Socket;
 import com.github.nkzawa.emitter.Emitter;
+import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.net.URISyntaxException;
 
@@ -205,8 +213,42 @@ public class WatchActivity extends YouTubeBaseActivity {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                JSONArray data = (JSONArray) args[0];
-                                System.out.println(data.toString());
+                                JSONArray videos = (JSONArray) args[0];
+                                try {
+                                    // The parent for all videos
+                                    LinearLayout mainLayout = findViewById(R.id.videoResultsConatiner);
+                                    mainLayout.removeAllViews();
+                                    // Create all items for the rooms
+                                    for (int i = 0; i < videos.length(); i++) {
+                                        final JSONObject room = videos.getJSONObject(i);
+                                        final JSONObject snippet = room.getJSONObject("snippet");
+                                        // The inflater for the rooms to be displayed
+                                        View view = getLayoutInflater().inflate(R.layout.video_list_item, mainLayout, false);
+                                        // Set the title
+                                        TextView title = view.findViewById(R.id.listItemTitle);
+                                        title.setText(snippet.getString("title"));
+                                        // Set the thumbnail
+                                        ImageView thumbnail = view.findViewById(R.id.listItemThumbnail);
+                                        Picasso.get().load(snippet.getJSONObject("thumbnails").getJSONObject("high").getString("url")).into(thumbnail);
+                                        // Set onClickListener for redirecting user into room
+                                        view.setOnClickListener(new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View v) {
+                                                String id = null;
+                                                try {
+                                                    id = room.getJSONObject("id").getString("videoId");
+                                                } catch (JSONException e) {
+                                                    e.printStackTrace();
+                                                }
+                                                mSocket.emit("videoChange", id);
+                                                youTubePlayer.loadVideo(id);
+                                            }
+                                        });
+                                        mainLayout.addView(view);
+                                    }
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
                             }
                         });
                     }
@@ -242,6 +284,8 @@ public class WatchActivity extends YouTubeBaseActivity {
             public void onClick(View v) {
                 String query = searchInput.getText().toString();
                 mSocket.emit("videoSearch", query);
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.toggleSoftInput (InputMethodManager.SHOW_FORCED, 0);
             }
         });
 
