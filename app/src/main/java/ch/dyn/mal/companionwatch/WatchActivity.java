@@ -1,6 +1,7 @@
 package ch.dyn.mal.companionwatch;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.KeyEvent;
@@ -16,6 +17,7 @@ import android.widget.ToggleButton;
 
 import androidx.annotation.NonNull;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.youtube.player.YouTubeBaseActivity;
 import com.google.android.youtube.player.YouTubeInitializationResult;
 import com.google.android.youtube.player.YouTubePlayer;
@@ -37,6 +39,7 @@ public class WatchActivity extends YouTubeBaseActivity {
     EditText searchInput;
     Button searchButton;
     ToggleButton visibilityToggle;
+    FloatingActionButton floatingActionButton;
 
     // The Web-Socket
     Socket mSocket;
@@ -76,6 +79,19 @@ public class WatchActivity extends YouTubeBaseActivity {
         searchInput = findViewById(R.id.editText);
         searchButton = findViewById(R.id.button);
         visibilityToggle = findViewById(R.id.visibilityToggle);
+        floatingActionButton = findViewById(R.id.floatingActionButton);
+
+        floatingActionButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                shareIntent.setType("text/plain");
+                shareIntent.putExtra(Intent.EXTRA_SUBJECT, "CompanionWatch");
+                String shareMessage= getString(R.string.invite) + "https://mal.dyn.ch/watch/" + namespace;
+                shareIntent.putExtra(Intent.EXTRA_TEXT, shareMessage);
+                startActivity(Intent.createChooser(shareIntent, getString(R.string.invite2)));
+            }
+        });
 
         // Initializing the Web-Socket
         try {

@@ -4,6 +4,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.icu.text.MeasureFormat;
@@ -25,6 +26,7 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.squareup.okhttp.internal.Platform;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
@@ -32,6 +34,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.w3c.dom.Text;
 
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.Inflater;
@@ -47,6 +50,21 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Send user to correct room if opened by link
+        try {
+            String path = Objects.requireNonNull(getIntent().getData()).getPath();
+            System.out.println(path);
+            // Connect user to correct room
+            if (path != null && !path.equals("/")) {
+                Intent i = new Intent(getApplicationContext(), WatchActivity.class);
+                Bundle b = new Bundle();
+                b.putString("ns", path.split("/")[2]);
+                i.putExtras(b);
+                startActivity(i);
+            }
+        }
+        // User opened app by themselves
+        catch (NullPointerException ignored) {}
         setContentView(R.layout.activity_main);
 
         final SwipeRefreshLayout swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);

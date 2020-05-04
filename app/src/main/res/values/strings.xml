@@ -11,4 +11,6 @@
     <string name="roomConnectionError">Something went wrong. Couldn\'t connect to room.</string>
     <string name="companions">Companions:</string>
     <string name="noRoomsMessage">Currently there are no existing rooms</string>
+    <string name="invite">Come watch videos with me!\n\n</string>
+    <string name="invite2">Invite someone to your room</string>
 </resources>
