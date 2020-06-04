@@ -4,20 +4,27 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
+import android.os.Message;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import androidx.annotation.NonNull;
 
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.android.youtube.player.YouTubeBaseActivity;
 import com.google.android.youtube.player.YouTubeInitializationResult;
 import com.google.android.youtube.player.YouTubePlayer;
@@ -37,9 +44,15 @@ public class WatchActivity extends YouTubeBaseActivity {
 
     // Objects displayed on screen
     EditText searchInput;
+    TextInputLayout chatInput;
+    TextInputEditText chatInputEditText;
     Button searchButton;
     ToggleButton visibilityToggle;
-    FloatingActionButton floatingActionButton;
+    ScrollView chatScrollView;
+    ScrollView videoResultsScrollView;
+    LinearLayout chatContainer;
+    Button chatSendMessageButton;
+    Button shareButton;
 
     // The Web-Socket
     Socket mSocket;
@@ -53,6 +66,7 @@ public class WatchActivity extends YouTubeBaseActivity {
     Emitter.Listener onVideoChange;
     Emitter.Listener onVisibilityChange;
     Emitter.Listener onSearchResults;
+    Emitter.Listener onNewMessage;
 
     // Variables needed for the YouTube video-player
     YouTubePlayerView youTubePlayerView;
@@ -71,6 +85,10 @@ public class WatchActivity extends YouTubeBaseActivity {
         setContentView(R.layout.activity_watch);
 
         namespace = getIntent().getExtras().getString("ns");
+        /* TODO: Remove permanent search bar to make space for the virtual keyboard when typing
+        Implement a search button instead
+         */
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
 
         externalChange = false;
         firstPlay = true;
@@ -79,9 +97,15 @@ public class WatchActivity extends YouTubeBaseActivity {
         searchInput = findViewById(R.id.editText);
         searchButton = findViewById(R.id.button);
         visibilityToggle = findViewById(R.id.visibilityToggle);
-        floatingActionButton = findViewById(R.id.floatingActionButton);
+        chatScrollView = findViewById(R.id.chatScrollView);
+        videoResultsScrollView = findViewById(R.id.videoResultsScrollView);
+        chatInput = findViewById(R.id.chatInput);
+        chatInputEditText = findViewById(R.id.chatInputEditText);
+        chatContainer = findViewById(R.id.chatContainer);
+        chatSendMessageButton = findViewById(R.id.chatSendButton);
+        shareButton = findViewById(R.id.shareButton);
 
-        floatingActionButton.setOnClickListener(new View.OnClickListener() {
+        shareButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent shareIntent = new Intent(Intent.ACTION_SEND);
@@ -123,7 +147,6 @@ public class WatchActivity extends YouTubeBaseActivity {
                             mSocket.emit("requestStateSync");
                             mSocket.emit("requestTimeSync");
                             firstPlay = false;
-                            return;
                         } else {
                             // Don't emit an event if the state change was caused by another client
                             if (externalChange) externalChange = false;
@@ -233,7 +256,7 @@ public class WatchActivity extends YouTubeBaseActivity {
                                 JSONArray videos = (JSONArray) args[0];
                                 try {
                                     // The parent for all videos
-                                    LinearLayout mainLayout = findViewById(R.id.videoResultsConatiner);
+                                    LinearLayout mainLayout = findViewById(R.id.videoResultsContainer);
                                     mainLayout.removeAllViews();
                                     // Create all items for the rooms
                                     for (int i = 0; i < videos.length(); i++) {
@@ -251,6 +274,7 @@ public class WatchActivity extends YouTubeBaseActivity {
                                         view.setOnClickListener(new View.OnClickListener() {
                                             @Override
                                             public void onClick(View v) {
+                                                toggleChatVideoVisibility();
                                                 String id = null;
                                                 try {
                                                     id = room.getJSONObject("id").getString("videoId");
@@ -271,6 +295,28 @@ public class WatchActivity extends YouTubeBaseActivity {
                     }
                 };
 
+                onNewMessage = new Emitter.Listener() {
+                    @Override
+                    public void call(final Object... args) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                String username = (String) args[0];
+                                String message = (String) args[1];
+                                TextView messageTextView = new TextView(chatContainer.getContext());
+                                messageTextView.setText(username + ": " + message);
+                                messageTextView.setId(chatContainer.getChildCount() + 1);
+                                messageTextView.setLayoutParams(new LinearLayout.LayoutParams(
+                                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                                        ViewGroup.LayoutParams.WRAP_CONTENT
+                                ));
+                                chatContainer.addView(messageTextView);
+                                scrollChatToBottom();
+                            }
+                        });
+                    }
+                };
+
                 // ------------------ End of Emitter listeners declaration ------------------
 
                 // Event listeners for the Web-Socket
@@ -279,6 +325,7 @@ public class WatchActivity extends YouTubeBaseActivity {
                 mSocket.on("videoChange", onVideoChange);
                 mSocket.on("visibilityChange", onVisibilityChange);
                 mSocket.on("searchResults", onSearchResults);
+                mSocket.on("newMessage", onNewMessage);
 
                 // Emit events to sync the current players state with other watchers
                 mSocket.emit("requestVideoSync");
@@ -293,12 +340,13 @@ public class WatchActivity extends YouTubeBaseActivity {
         };
 
         // Initialize the youtube video player
-        youTubePlayerView.initialize(DeveloperVariables.API_KEY, onInitializedListener);
+        youTubePlayerView.initialize(API_KEY, onInitializedListener);
 
         // Perform a search if the button is pressed
         searchButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                toggleChatVideoVisibility(); // Shows the video results
                 String query = searchInput.getText().toString();
                 mSocket.emit("videoSearch", query);
                 InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -323,6 +371,35 @@ public class WatchActivity extends YouTubeBaseActivity {
                     return true;
                 }
                 return false;
+            }
+        });
+
+        chatInputEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            /* When user presses the enter button, the text should be sent
+            Fetch the string from the EditText and call the sender function
+             */
+            @Override
+            public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
+                if (i == EditorInfo.IME_ACTION_DONE) {
+                    try {
+                        sendChatMessage(chatInputEditText.getText().toString());
+                    } catch (NullPointerException e) {
+                        Log.e("ERROR", "Attempt to send empty chat field.");
+                    }
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        chatSendMessageButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                try {
+                    sendChatMessage(chatInputEditText.getText().toString());
+                } catch (NullPointerException e) {
+                    Log.e("ERROR", "Attempt to send empty chat field.");
+                }
             }
         });
     }
@@ -353,5 +430,57 @@ public class WatchActivity extends YouTubeBaseActivity {
         mSocket.off("videoChange", onVideoChange);
         mSocket.off("visibilityChange", onVisibilityChange);
         mSocket.off("searchResults", onSearchResults);
+    }
+
+    void toggleChatVideoVisibility() {
+        /* Toggles visibility of chat input field, chat scroll view and the video results scroll view.
+        This is a workaround because no Fragments were used, which is utterly retarded.
+         */
+
+        // If chat is invisible, make it visible and make video results invisible
+        if (chatInput.getVisibility() == View.INVISIBLE ||chatScrollView.getVisibility() ==  View.INVISIBLE) {
+            videoResultsScrollView.setVisibility(View.INVISIBLE);
+            chatInput.setVisibility(View.VISIBLE);
+            chatScrollView.setVisibility(View.VISIBLE);
+            chatSendMessageButton.setVisibility(View.VISIBLE);
+        } else {
+            // Do the opposite of above
+            videoResultsScrollView.setVisibility(View.VISIBLE);
+            chatInput.setVisibility(View.INVISIBLE);
+            chatScrollView.setVisibility(View.INVISIBLE);
+            chatSendMessageButton.setVisibility(View.INVISIBLE);
+        }
+    }
+
+    void sendChatMessage(String message) {
+        /* Uses the socket to emit a chat message to all other users
+         */
+        mSocket.emit("newMessage", "Default", message);
+        /* For whatever reason the sent message is not being emitted back to us
+        We have to manually insert our message into the LinearLayout
+         */
+        // Prepare message View to insert
+        TextView messageTextView = new TextView(chatContainer.getContext());
+        messageTextView.setText("Me" + ": " + message);
+        messageTextView.setId(chatContainer.getChildCount() + 1);
+        messageTextView.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
+        chatContainer.addView(messageTextView); // Insert message
+        scrollChatToBottom(); // Scroll down so the new message is shown
+    }
+
+    void scrollChatToBottom() {
+        /* There is probably a more elegant solution to this
+        Whenever a new message is added to the bottom and it overflows the ScrollView,
+        we need to scroll to the bottom to make it visible
+         */
+        chatScrollView.post(new Runnable() {
+            @Override
+            public void run() {
+                chatScrollView.fullScroll(View.FOCUS_DOWN);
+            }
+        });
     }
 }
